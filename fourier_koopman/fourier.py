@@ -25,7 +25,45 @@ class fourier:
         self.num_freqs = num_freqs
         self.device = device
     
+    def scale(self, xt):
+        '''
+        Given temporal data xt, min_max rescales the data to -1, 1.
+
+        Parameters
+        ----------
+        xt : TYPE: numpy.array
+            Temporal data of dimensions [T, N]
+
+        Returns
+        -------
+        None.
+
+        '''
+        self.min = np.min(xt,0)
+        self.max = np.max(xt,0)
+
+        return -1+2*(xt-self.min)/(self.max-self.min)
     
+    def descale(self,xt):
+        '''
+        Given rescaled data xt, min_max unrescales the data to the original
+
+        Parameters
+        ----------
+        xt : TYPE: numpy.array
+            Temporal data of dimensions [T, N]
+
+        Returns
+        -------
+        None.
+
+        '''
+        return (xt+1)*(self.max-self.min)/2+self.min
+
+        
+
+
+
     def fft(self, xt):
         '''
         Given temporal data xt, fft performs the initial guess of the 
