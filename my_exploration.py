@@ -25,6 +25,16 @@ class data:
         x_train = x[:split]
         x_test = x[split:]
         return x_train,x_test,split
+    def artificial_bivariate(size,split_ratio,noise = True):
+        x1 = (np.sin([2*np.pi/24*np.arange(size)]) + np.sin([2*np.pi/33*np.arange(size)])).T
+        x2 = (np.cos([2*np.pi/24*np.arange(size)]) + np.cos([2*np.pi/33*np.arange(size)])).T
+        x = np.concatenate([x1,x2],-1)
+        if noise:
+            x += np.random.normal(0,0.2,x.shape)
+        split = int(x.shape[0]*split_ratio)
+        x_train = x[:split]
+        x_test = x[split:]
+        return x_train,x_test,split
     def artificial_2(size,split_ratio):
         f1 = 1.0  # frequency of first sinusoid
         f2 = 1.1  # frequency of second sinusoid
@@ -77,7 +87,7 @@ class data:
 if __name__ == '__main__':
     
     split_ratio = 0.4
-    x_train,x_test,split = data.artificial(10000,split_ratio,noise=True)
+    x_train,x_test,split = data.artificial_bivariate(10000,split_ratio,noise=True)
     # x_train,x_test,split = data.energy_consumption(split_ratio)
     size = x_train.shape[0] + x_test.shape[0]
     plt.figure(figsize = (20,5))
@@ -106,7 +116,7 @@ if __name__ == '__main__':
     plt.legend()
     plt.show()
     ### koopman
-    model_object = fully_connected_mse(x_dim=1, num_freqs=4, n_neurons=800,n_layers=3)
+    model_object = fully_connected_mse(x_dim=x_train.shape[1], num_freqs=4, n_neurons=800,n_layers=3)
     k = koopman(model_object, device='cpu')
     k.fit(k.scale(x_train), iterations = 25, interval = 10, verbose=True,lr_omega = 1e-5,lr_theta = 1e-4,cutoff = 50)
     xhat_koopman = k.predict(size)
