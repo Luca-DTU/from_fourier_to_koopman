@@ -41,8 +41,10 @@ class fourier:
         '''
         self.min = np.min(xt,0)
         self.max = np.max(xt,0)
-
-        return -1+2*(xt-self.min)/(self.max-self.min)
+        self.mu = np.mean(xt,0)
+        self.sigma = np.std(xt,0)
+        return (xt-self.mu)/self.sigma
+        # return -1+2*(xt-self.min)/(self.max-self.min)
     
     def descale(self,xt):
         '''
@@ -58,7 +60,8 @@ class fourier:
         None.
 
         '''
-        return (xt+1)*(self.max-self.min)/2+self.min
+        return xt*self.sigma+self.mu
+        # return (xt+1)*(self.max-self.min)/2+self.min
 
         
 

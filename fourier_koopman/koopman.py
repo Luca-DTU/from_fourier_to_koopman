@@ -12,6 +12,7 @@ from torch import optim
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
+torch.manual_seed(0)
 
 class koopman(nn.Module):
     
@@ -77,7 +78,44 @@ class koopman(nn.Module):
             
         self.sample_num = sample_num
 
-        
+    def scale(self, xt):
+        '''
+        Given temporal data xt, min_max rescales the data to -1, 1.
+
+        Parameters
+        ----------
+        xt : TYPE: numpy.array
+            Temporal data of dimensions [T, N]
+
+        Returns
+        -------
+        None.
+
+        '''
+        self.min = np.min(xt,0)
+        self.max = np.max(xt,0)
+        self.mu = np.mean(xt,0)
+        self.sigma = np.std(xt,0)
+        return (xt-self.mu)/self.sigma
+        # return -1+2*(xt-self.min)/(self.max-self.min)
+    
+    def descale(self,xt):
+        '''
+        Given rescaled data xt, min_max unrescales the data to the original
+
+        Parameters
+        ----------
+        xt : TYPE: numpy.array
+            Temporal data of dimensions [T, N]
+
+        Returns
+        -------
+        None.
+
+        '''
+        return xt*self.sigma+self.mu
+        # return (xt+1)*(self.max-self.min)/2+self.min
+
         
         
     def sample_error(self, xt, which):
@@ -196,7 +234,7 @@ class koopman(nn.Module):
     
     
     
-    def sgd(self, xt, verbose=False):
+    def sgd(self, xt, lr_omega,lr_theta, verbose=False):
         '''
         
         sgd performs a single epoch of stochastic gradient descent on parameters
@@ -222,8 +260,8 @@ class koopman(nn.Module):
         
         omega = nn.Parameter(self.omegas)
         
-        opt = optim.SGD(self.model_obj.parameters(), lr=3e-3)
-        opt_omega = optim.SGD([omega], lr=1e-7/T)
+        opt = optim.Adam(self.model_obj.parameters(), lr=lr_theta)
+        opt_omega = optim.Adam([omega], lr=lr_omega/T)
         
         
         T = xt.shape[0]
@@ -264,7 +302,7 @@ class koopman(nn.Module):
     
     
     
-    def fit(self, xt, iterations = 10, interval = 5, cutoff = np.inf, verbose=False):
+    def fit(self, xt, iterations = 10, interval = 5, cutoff = np.inf, verbose=False,lr_omega=1e-3, lr_theta=1e-4):
         '''
         Given a dataset, this function alternatingly optimizes omega and 
         parameters of f. Specifically, the algorithm performs interval many
@@ -301,7 +339,7 @@ class koopman(nn.Module):
                 print('Iteration ',i)
                 print(2*np.pi/self.omegas)
             
-            l = self.sgd(xt, verbose=verbose)
+            l = self.sgd(xt, verbose=verbose, lr_omega=lr_omega, lr_theta=lr_theta)
             if verbose:
                 print('Loss: ',l)
             losses.append(l)
@@ -388,26 +426,21 @@ class model_object(nn.Module):
 
 
 class fully_connected_mse(model_object):
-    
-    
-    def __init__(self, x_dim, num_freqs, n):
+    def __init__(self, x_dim, num_freqs, n_neurons=32, n_layers=2):
         super(fully_connected_mse, self).__init__(num_freqs)
         
-        self.l1 = nn.Linear(2*num_freqs, n)
-        self.l2 = nn.Linear(n,32)
-        self.l3 = nn.Linear(32,x_dim)
-        
+        self.layers = nn.ModuleList()
+        self.layers.append(nn.Linear(2*num_freqs, n_neurons))
+        for i in range(n_layers):
+            self.layers.append(nn.Linear(n_neurons, n_neurons))
+        self.layers.append(nn.Linear(n_neurons, x_dim))        
         
     def decode(self, x):
-        o1 = nn.ReLU()(self.l1(x))
-        o2 = nn.ReLU()(self.l2(o1))
-        o3 = self.l3(o2)
-        
-        return o3
-        
+        for layer in self.layers[:-1]:
+            x = torch.relu(layer(x))
+        return self.layers[-1](x)        
         
     def forward(self, y, x):
         xhat = self.decode(y)
         return torch.mean((xhat-x)**2, dim=-1)
-    
-        
+ 

@@ -14,6 +14,8 @@ import numpy as np
 from fourier_koopman import fourier, koopman, fully_connected_mse
 import matplotlib.pyplot as plt
 import pandas as pd
+np.random.seed(0)
+
 class data:
     def artificial(size,split_ratio,noise = True):
         x = (np.sin([2*np.pi/24*np.arange(size)]) + np.sin([2*np.pi/33*np.arange(size)])).T
@@ -74,8 +76,8 @@ class data:
 
 if __name__ == '__main__':
     
-    split_ratio = 0.75
-    x_train,x_test,split = data.artificial(5000,split_ratio,noise=False)
+    split_ratio = 0.4
+    x_train,x_test,split = data.artificial(10000,split_ratio,noise=True)
     # x_train,x_test,split = data.energy_consumption(split_ratio)
     size = x_train.shape[0] + x_test.shape[0]
     plt.figure(figsize = (20,5))
@@ -83,30 +85,32 @@ if __name__ == '__main__':
     plt.plot(np.arange(split,size),x_test)
     plt.show()
     ### Fourier
-    # f = fourier(num_freqs=2)
-    # # f.fit(f.scale(x_train), iterations = 500,verbose = True)
-    # # xhat_fourier = f.predict(size)
-    # # xhat_fourier = f.descale(xhat_fourier)
+    f = fourier(num_freqs=2)
+    f.fit(f.scale(x_train), iterations = 500,verbose = True)
+    print(1/f.freqs)
+    xhat_fourier = f.predict(size)
+    xhat_fourier = f.descale(xhat_fourier)
     # f.fit(x_train, iterations = 500,verbose = True)
     # print(1/f.freqs)
     # xhat_fourier = f.predict(size)
-    # plt.figure(figsize = (20,5))
-    # plt.plot(np.arange(size),xhat_fourier,label = 'fourier')
-    # plt.plot(np.arange(split),x_train,label = 'train')
-    # plt.plot(np.arange(split,size),x_test,label = 'test')
-    # plt.legend()
-    # plt.show()
-    # # residuals
-    # plt.figure(figsize = (20,5))
-    # plt.plot(np.arange(split),x_train-xhat_fourier[:split],label = 'train')
-    # plt.plot(np.arange(split,size),x_test-xhat_fourier[split:],label = 'test')
-    # plt.legend()
-    # plt.show()
+    plt.figure(figsize = (20,5))
+    plt.plot(np.arange(size),xhat_fourier,label = 'fourier')
+    plt.plot(np.arange(split),x_train,label = 'train')
+    plt.plot(np.arange(split,size),x_test,label = 'test')
+    plt.legend()
+    plt.show()
+    # residuals
+    plt.figure(figsize = (20,5))
+    plt.plot(np.arange(split),x_train-xhat_fourier[:split],label = 'train')
+    plt.plot(np.arange(split,size),x_test-xhat_fourier[split:],label = 'test')
+    plt.legend()
+    plt.show()
     ### koopman
-    model_object = fully_connected_mse(x_dim=1, num_freqs=2, n=32)
+    model_object = fully_connected_mse(x_dim=1, num_freqs=4, n_neurons=800,n_layers=3)
     k = koopman(model_object, device='cpu')
-    k.fit(x_train, iterations = 300, interval = 25, verbose=True)
+    k.fit(k.scale(x_train), iterations = 25, interval = 10, verbose=True,lr_omega = 1e-5,lr_theta = 1e-4,cutoff = 50)
     xhat_koopman = k.predict(size)
+    xhat_koopman = k.descale(xhat_koopman)
     plt.figure(figsize = (20,5))
     plt.plot(np.arange(size),xhat_koopman,label = 'koopman')
     plt.plot(np.arange(split),x_train,label = 'train')
@@ -119,6 +123,8 @@ if __name__ == '__main__':
     plt.plot(np.arange(split,size),x_test-xhat_koopman[split:],label = 'test')
     plt.legend()
     plt.show()
+
+
 
 
 
