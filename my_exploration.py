@@ -75,33 +75,35 @@ class data:
 if __name__ == '__main__':
     
     split_ratio = 0.75
-    x_train,x_test,split = data.artificial_2(5000,split_ratio,)
+    x_train,x_test,split = data.artificial(5000,split_ratio,noise=False)
     # x_train,x_test,split = data.energy_consumption(split_ratio)
     size = x_train.shape[0] + x_test.shape[0]
     plt.figure(figsize = (20,5))
     plt.plot(np.arange(split),x_train)
     plt.plot(np.arange(split,size),x_test)
     plt.show()
-    f = fourier(num_freqs=2)
-    # f.fit(f.scale(x_train), iterations = 500,verbose = True)
+    ### Fourier
+    # f = fourier(num_freqs=2)
+    # # f.fit(f.scale(x_train), iterations = 500,verbose = True)
+    # # xhat_fourier = f.predict(size)
+    # # xhat_fourier = f.descale(xhat_fourier)
+    # f.fit(x_train, iterations = 500,verbose = True)
+    # print(1/f.freqs)
     # xhat_fourier = f.predict(size)
-    # xhat_fourier = f.descale(xhat_fourier)
-    f.fit(x_train, iterations = 1500,verbose = True)
-    xhat_fourier = f.predict(size)
-    plt.figure(figsize = (20,5))
-    plt.plot(np.arange(size),xhat_fourier,label = 'fourier')
-    plt.plot(np.arange(split),x_train,label = 'train')
-    plt.plot(np.arange(split,size),x_test,label = 'test')
-    plt.legend()
-    plt.show()
-    # residuals
-    plt.figure(figsize = (20,5))
-    plt.plot(np.arange(split),x_train-xhat_fourier[:split],label = 'train')
-    plt.plot(np.arange(split,size),x_test-xhat_fourier[split:],label = 'test')
-    plt.legend()
-    plt.show()
-    # koopman
-    model_object = fully_connected_mse(x_dim=1, num_freqs=2, n=512)
+    # plt.figure(figsize = (20,5))
+    # plt.plot(np.arange(size),xhat_fourier,label = 'fourier')
+    # plt.plot(np.arange(split),x_train,label = 'train')
+    # plt.plot(np.arange(split,size),x_test,label = 'test')
+    # plt.legend()
+    # plt.show()
+    # # residuals
+    # plt.figure(figsize = (20,5))
+    # plt.plot(np.arange(split),x_train-xhat_fourier[:split],label = 'train')
+    # plt.plot(np.arange(split,size),x_test-xhat_fourier[split:],label = 'test')
+    # plt.legend()
+    # plt.show()
+    ### koopman
+    model_object = fully_connected_mse(x_dim=1, num_freqs=2, n=32)
     k = koopman(model_object, device='cpu')
     k.fit(x_train, iterations = 300, interval = 25, verbose=True)
     xhat_koopman = k.predict(size)
@@ -117,15 +119,6 @@ if __name__ == '__main__':
     plt.plot(np.arange(split,size),x_test-xhat_koopman[split:],label = 'test')
     plt.legend()
     plt.show()
-    # compare
-    plt.figure(figsize = (20,5))
-    plt.plot(np.arange(size),xhat_fourier,label = 'fourier')
-    plt.plot(np.arange(size),xhat_koopman,label = 'koopman')
-    plt.plot(np.arange(split),x_train,label = 'train')
-    plt.plot(np.arange(split,size),x_test,label = 'test')
-    plt.legend()
-    plt.show()
-
 
 
 

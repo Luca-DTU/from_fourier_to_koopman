@@ -167,8 +167,9 @@ class koopman(nn.Module):
         E_ft : TYPE
             Global loss surface in frequency domain.
         '''
-        
-        E, E_ft = self.reconstruct(self.sample_error(xt, i))
+        E_sampled = self.sample_error(xt, i) # eq. (13),(14)
+        E, E_ft = self.reconstruct(E_sampled) # eq. (15)
+        #would it make sense to smooth E here to avoid the optimizer being trappe into sincs?
         omegas = np.linspace(0,1,len(E))
         
         idxs = np.argsort(E[:len(E_ft)//2])
@@ -398,8 +399,8 @@ class fully_connected_mse(model_object):
         
         
     def decode(self, x):
-        o1 = nn.Tanh()(self.l1(x))
-        o2 = nn.Tanh()(self.l2(o1))
+        o1 = nn.ReLU()(self.l1(x))
+        o2 = nn.ReLU()(self.l2(o1))
         o3 = self.l3(o2)
         
         return o3
