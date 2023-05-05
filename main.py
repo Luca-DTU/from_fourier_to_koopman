@@ -96,6 +96,10 @@ class data:
             dfi = pd.read_excel(f"data\Terna\data ({i}).xlsx").dropna()
             df = pd.concat([df,dfi])
         df = df.reset_index(drop=True)
+        # group to hourly
+        df.set_index("Date",inplace = True)
+        df = df.groupby(pd.Grouper(freq='H')).mean()
+
         x = df["Total Load [MW]"].values
         x = x.reshape(x.shape[0],1)
         split = int(x.shape[0]*split_ratio)
@@ -106,7 +110,7 @@ class data:
     def solar_energy():
         pass
 
-def main(data,data_kwargs,normalize,num_freqs_fourier,num_freqs_koopman,n_neurons,n_layers,fit_kwargs,figname,sample_num):
+def main(data,data_kwargs,normalize,num_freqs_fourier,num_freqs_koopman,n_neurons,n_layers,fit_kwargs,figname,sample_num,zoom = False):
     x_train,x_test,split = data(**data_kwargs)
     size = x_train.shape[0] + x_test.shape[0]
     # plt.figure(figsize = (20,5))
@@ -158,9 +162,10 @@ def main(data,data_kwargs,normalize,num_freqs_fourier,num_freqs_koopman,n_neuron
     axs[0,0].set_ylabel('y')
     axs[1,0].set_ylabel('y')
     axs[1,0].set_xlabel('Time')
-    xlim = (split-100, split+100)
-    for ax in axs.flat:
-        ax.set(xlim=xlim)
+    if zoom:
+        xlim = (split-100, split+100)
+        for ax in axs.flat:
+            ax.set(xlim=xlim)
     plt.tight_layout()
     plt.savefig(f"figures/{figname}.png")
     plt.show()
@@ -187,26 +192,55 @@ params_base = {
         "verbose": True,
         },
     "figname": "artificial",
-    "sample_num": 12
+    "sample_num": 12,
+    "zoom": True,
     }
 
 
 
 if __name__ == '__main__':
     params = params_base.copy()
-    ### experiment 1
+    # ### experiment 1
+    # main(**params)
+    # ### experiment 2
+    # params["data_kwargs"]["noise"] = True
+    # params["figname"] = "artificial_noise"
+    # main(**params)
+    # ### experiment 3
+    # params["data_kwargs"]["noise"] = False
+    # params["data_kwargs"]["nonlinear"] = True
+    # params["figname"] = "artificial_nonlinear"
+    # main(**params)
+    # ### experiment 4
+    # params["data_kwargs"]["noise"] = True
+    # params["figname"] = "artificial_noise_nonlinear"
+    # main(**params)
+    ### experiment 5
+    # params["data"] = data.lorenz
+    # params["data_kwargs"] = {"split_ratio": 0.6}
+    # params["figname"] = "lorenz"
+    # params["num_freqs_fourier"] = 24
+    # params["num_freqs_koopman"] = 24
+    # params["n_neurons"] = 512
+    # params["n_layers"] = 3
+    # params["fit_kwargs"]["interval"] = 25
+    # params["fit_kwargs"]["iterations"] = 1000
+    # params["fit_kwargs"]["cutoff"] = 500
+    # params["zoom"] = False
+    # main(**params)
+    ### experiment 6
+    params["data"] = data.energy_consumption
+    params["data_kwargs"] = {"split_ratio": 0.6}
+    params["figname"] = "energy_consumption"
+    params["num_freqs_fourier"] = 24
+    params["num_freqs_koopman"] = 24
+    params["n_neurons"] = 512
+    params["n_layers"] = 3
+    params["fit_kwargs"]["interval"] = 25
+    params["fit_kwargs"]["iterations"] = 1000
+    params["fit_kwargs"]["cutoff"] = 500
+    params["zoom"] = False
     main(**params)
-    ### experiment 2
-    params["data_kwargs"]["noise"] = True
-    params["figname"] = "artificial_noise"
-    main(**params)
-    ### experiment 3
-    params["data_kwargs"]["noise"] = False
-    params["data_kwargs"]["nonlinear"] = True
-    params["figname"] = "artificial_nonlinear"
-    main(**params)
-    ### experiment 4
-    params["data_kwargs"]["noise"] = True
-    params["figname"] = "artificial_noise_nonlinear"
-    main(**params)
+
+
 
