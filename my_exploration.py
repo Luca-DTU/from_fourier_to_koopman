@@ -14,11 +14,14 @@ import numpy as np
 from fourier_koopman import fourier, koopman, fully_connected_mse
 import matplotlib.pyplot as plt
 import pandas as pd
+from scipy.integrate import solve_ivp
 np.random.seed(0)
 
 class data:
-    def artificial(size,split_ratio,noise = True):
+    def artificial(size,split_ratio,nonlinear = False, noise = True):
         x = (np.sin([2*np.pi/24*np.arange(size)]) + np.sin([2*np.pi/33*np.arange(size)])).T
+        if nonlinear:
+            x = np.where(x >= 0, np.sqrt(x), -np.sqrt(-x))
         if noise:
             x += np.random.normal(0,0.2,x.shape)
         split = int(x.shape[0]*split_ratio)
@@ -55,12 +58,37 @@ class data:
         x_train = x[:split]
         x_test = x[split:]
         return x_train,x_test,split
-    def lorenz():
-        pass
-    def ks_equation():
-        pass
-    def fluid_flow():
-        pass
+    def lorenz(split_ratio):
+        # Lorenz system parameters
+        sigma = 10.0
+        rho = 28.0
+        beta = 8.0 / 3.0
+
+        # Lorenz system function
+        def lorenz_ode(t, xyz):
+            x, y, z = xyz
+            dxdt = sigma * (y - x)
+            dydt = x * (rho - z) - y
+            dzdt = x * y - beta * z
+            return [dxdt, dydt, dzdt]
+
+        # Initial conditions
+        x0, y0, z0 = [1.0, 1.0, 1.0]
+        xyz0 = [x0, y0, z0]
+
+        # Time span for simulation
+        t_span = [0, 50]
+
+        # Solve ODE using scipy.integrate.solve_ivp
+        sol = solve_ivp(lorenz_ode, t_span, xyz0,t_eval=np.linspace(0,50,10000))
+
+        x = sol.y.T
+        split = int(x.shape[0]*split_ratio)
+        x_train = x[:split]
+        x_test = x[split:]
+        return x_train,x_test,split
+
+
     def energy_consumption(split_ratio = 0.7):
         # https://www.terna.it/en/electric-system/transparency-report/download-center
         df = pd.read_excel('data\Terna\data.xlsx').dropna()
@@ -77,25 +105,23 @@ class data:
          
     def solar_energy():
         pass
-    def enso():
-        pass
-    def kaggle():
-        pass
+
 
     
 
 if __name__ == '__main__':
     
     split_ratio = 0.4
-    x_train,x_test,split = data.artificial_bivariate(10000,split_ratio,noise=True)
-    # x_train,x_test,split = data.energy_consumption(split_ratio)
+    # x_train,x_test,split = data.artificial(10000,split_ratio,noise=True,nonlinear=True)
+    x_train,x_test,split = data.energy_consumption(split_ratio)
+    # x_train,x_test,split = data.lorenz(split_ratio)
     size = x_train.shape[0] + x_test.shape[0]
     plt.figure(figsize = (20,5))
     plt.plot(np.arange(split),x_train)
     plt.plot(np.arange(split,size),x_test)
     plt.show()
     ### Fourier
-    f = fourier(num_freqs=2)
+    f = fourier(num_freqs=8)
     f.fit(f.scale(x_train), iterations = 500,verbose = True)
     print(1/f.freqs)
     xhat_fourier = f.predict(size)
@@ -116,7 +142,7 @@ if __name__ == '__main__':
     plt.legend()
     plt.show()
     ### koopman
-    model_object = fully_connected_mse(x_dim=x_train.shape[1], num_freqs=4, n_neurons=800,n_layers=3)
+    model_object = fully_connected_mse(x_dim=x_train.shape[1], num_freqs=8, n_neurons=800,n_layers=3)
     k = koopman(model_object, device='cpu')
     k.fit(k.scale(x_train), iterations = 25, interval = 10, verbose=True,lr_omega = 1e-5,lr_theta = 1e-4,cutoff = 50)
     xhat_koopman = k.predict(size)
