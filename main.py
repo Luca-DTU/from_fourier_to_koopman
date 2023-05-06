@@ -1,15 +1,4 @@
-"""
-This is my exploration of the method
-- simple artificial data
-- fluid flow data
-- Energy consumption data
-- Solar energy data
-- enso data
-- Kaggle data
-gameplan:
-- Fully understand the theory and algorithm
 
-"""
 import numpy as np
 from fourier_koopman import fourier, koopman, fully_connected_mse
 import matplotlib.pyplot as plt
@@ -91,14 +80,20 @@ class data:
 
     def energy_consumption(split_ratio = 0.7):
         # https://www.terna.it/en/electric-system/transparency-report/download-center
-        df = pd.read_excel('data\Terna\data.xlsx').dropna()
-        for i in range(1,6):
-            dfi = pd.read_excel(f"data\Terna\data ({i}).xlsx").dropna()
-            df = pd.concat([df,dfi])
-        df = df.reset_index(drop=True)
-        # group to hourly
-        df.set_index("Date",inplace = True)
-        df = df.groupby(pd.Grouper(freq='H')).mean()
+        try:
+            df = pd.read_csv("data\Terna\data.csv")
+        except FileNotFoundError:
+            print("full file not found, parsing individual files")
+            df = pd.read_excel('data\Terna\data.xlsx').dropna()
+            for i in range(1,6):
+                dfi = pd.read_excel(f"data\Terna\data ({i}).xlsx").dropna()
+                df = pd.concat([df,dfi])
+            df = df.reset_index(drop=True)
+            # group to hourly
+            df.set_index("Date",inplace = True)
+            df = df.groupby(pd.Grouper(freq='H')).mean()
+            df.fillna(method = "ffill",inplace = True)
+            df.to_csv("data\Terna\data.csv")
 
         x = df["Total Load [MW]"].values
         x = x.reshape(x.shape[0],1)
@@ -107,9 +102,6 @@ class data:
         x_test = x[split:]
         return x_train,x_test,split
          
-    def solar_energy():
-        pass
-
 def main(data,data_kwargs,normalize,num_freqs_fourier,num_freqs_koopman,n_neurons,n_layers,fit_kwargs,figname,sample_num,zoom = False):
     x_train,x_test,split = data(**data_kwargs)
     size = x_train.shape[0] + x_test.shape[0]
@@ -120,7 +112,8 @@ def main(data,data_kwargs,normalize,num_freqs_fourier,num_freqs_koopman,n_neuron
     ### Fourier
     f = fourier(num_freqs=num_freqs_fourier)
     if normalize:
-        f.fit(f.scale(x_train), iterations = 500,verbose = True)
+        scaled = f.scale(x_train)
+        f.fit(scaled, iterations = 100,verbose = True)
         print(1/f.freqs)
         xhat_fourier = f.predict(size)
         xhat_fourier = f.descale(xhat_fourier)
@@ -140,14 +133,14 @@ def main(data,data_kwargs,normalize,num_freqs_fourier,num_freqs_koopman,n_neuron
         xhat_koopman = k.predict(size)
     ### plot
     fig,axs = plt.subplots(2,2,figsize = (16,8),sharex='col', sharey='row')
-    axs[0,0].plot(np.arange(size),xhat_koopman,label = 'koopman',linestyle = '--',color = 'black')
     axs[0,0].plot(np.arange(split),x_train,label = 'train',color = 'orange')
     axs[0,0].plot(np.arange(split,size),x_test,label = 'test',color = 'green')
+    axs[0,0].plot(np.arange(size),xhat_koopman,label = 'koopman',linestyle = '--',color = 'black')
     axs[0,0].legend()
     axs[0,0].set_title('Koopman')
-    axs[0,1].plot(np.arange(size),xhat_fourier,label = 'fourier',linestyle = '--',color = 'black')
     axs[0,1].plot(np.arange(split),x_train,label = 'train',color = 'orange')
     axs[0,1].plot(np.arange(split,size),x_test,label = 'test',color = 'green')
+    axs[0,1].plot(np.arange(size),xhat_fourier,label = 'fourier',linestyle = '--',color = 'black')
     axs[0,1].legend()
     axs[0,1].set_title('Fourier')    
     axs[1,0].plot(np.arange(split),x_train-xhat_koopman[:split],label = 'train',color = 'orange')
@@ -163,7 +156,7 @@ def main(data,data_kwargs,normalize,num_freqs_fourier,num_freqs_koopman,n_neuron
     axs[1,0].set_ylabel('y')
     axs[1,0].set_xlabel('Time')
     if zoom:
-        xlim = (split-100, split+100)
+        xlim = (split-200, split+800)
         for ax in axs.flat:
             ax.set(xlim=xlim)
     plt.tight_layout()
@@ -229,18 +222,21 @@ if __name__ == '__main__':
     # params["zoom"] = False
     # main(**params)
     ### experiment 6
-    params["data"] = data.energy_consumption
-    params["data_kwargs"] = {"split_ratio": 0.6}
-    params["figname"] = "energy_consumption"
-    params["num_freqs_fourier"] = 24
-    params["num_freqs_koopman"] = 24
-    params["n_neurons"] = 512
-    params["n_layers"] = 3
-    params["fit_kwargs"]["interval"] = 25
-    params["fit_kwargs"]["iterations"] = 1000
-    params["fit_kwargs"]["cutoff"] = 500
-    params["zoom"] = False
-    main(**params)
+    # params["data"] = data.energy_consumption
+    # params["data_kwargs"] = {"split_ratio": 0.6}
+    # params["figname"] = "energy_consumption"
+    # params["num_freqs_fourier"] = 8
+    # params["num_freqs_koopman"] = 8
+    # params["n_neurons"] = 128
+    # params["n_layers"] = 2
+    # params["fit_kwargs"]["interval"] = 5
+    # params["fit_kwargs"]["iterations"] = 100
+    # params["fit_kwargs"]["cutoff"] = 50
+    # params["fit_kwargs"]["omegas"] = [12,24,48,96,168,672,8760,17520]
+    # params["zoom"] = False
+    # params["sample_num"] = 24
+    # params["normalize"] = True
+    # main(**params)
 
 
 

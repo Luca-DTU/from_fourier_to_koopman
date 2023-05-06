@@ -302,7 +302,7 @@ class koopman(nn.Module):
     
     
     
-    def fit(self, xt, iterations = 10, interval = 5, cutoff = np.inf, verbose=False,lr_omega=1e-3, lr_theta=1e-4):
+    def fit(self, xt, iterations = 10, interval = 5, cutoff = np.inf, verbose=False,lr_omega=1e-3, lr_theta=1e-4, omegas=None):
         '''
         Given a dataset, this function alternatingly optimizes omega and 
         parameters of f. Specifically, the algorithm performs interval many
@@ -320,6 +320,12 @@ class koopman(nn.Module):
             interval is 5, then omegas are updated every 5 epochs. The default is 5.
         verbose : TYPE boolean, optional
             DESCRIPTION. The default is False.
+        lr_omega : TYPE float, optional
+            Learning rate for omega. The default is 1e-3.
+        lr_theta : TYPE float, optional
+            Learning rate for parameters of f. The default is 1e-4.
+        omegas : TYPE numpy.array, optional
+            Initial values for omega. The default is None.
 
         Returns
         -------
@@ -329,12 +335,16 @@ class koopman(nn.Module):
     
         assert(len(xt.shape) > 1), 'Input data needs to be at least 2D'
         losses = []
+        if omegas:
+            self.omegas = torch.tensor(omegas, device = self.device,dtype=torch.get_default_dtype())
+            self.omegas = 2*np.pi/self.omegas
+
         for i in range(iterations):
-            
-            if i%interval == 0 and i < cutoff: 
-                for k in range(self.num_freq):
-                    self.fft(xt, k, verbose=verbose)
-            
+            if not omegas: # if omegas are not given, we need to compute them
+                if i%interval == 0 and i < cutoff: 
+                    for k in range(self.num_freq):
+                        self.fft(xt, k, verbose=verbose)
+                
             if verbose:
                 print('Iteration ',i)
                 print(2*np.pi/self.omegas)
