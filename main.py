@@ -66,7 +66,7 @@ class data:
         xyz0 = [x0, y0, z0]
 
         # Time span for simulation
-        t_span = [0, 50]
+        t_span = [0, 150]
 
         # Solve ODE using scipy.integrate.solve_ivp
         sol = solve_ivp(lorenz_ode, t_span, xyz0,t_eval=np.linspace(0,50,10000))
@@ -113,12 +113,12 @@ def main(data,data_kwargs,normalize,num_freqs_fourier,num_freqs_koopman,n_neuron
     f = fourier(num_freqs=num_freqs_fourier)
     if normalize:
         scaled = f.scale(x_train)
-        f.fit(scaled, iterations = 100,verbose = True)
+        f.fit(scaled, iterations = 1000,verbose = True)
         print(1/f.freqs)
         xhat_fourier = f.predict(size)
         xhat_fourier = f.descale(xhat_fourier)
     else:
-        f.fit(x_train, iterations = 500,verbose = True)
+        f.fit(x_train, iterations = 1000,verbose = True)
         print(1/f.freqs)
         xhat_fourier = f.predict(size)
     ### koopman
@@ -156,7 +156,7 @@ def main(data,data_kwargs,normalize,num_freqs_fourier,num_freqs_koopman,n_neuron
     axs[1,0].set_ylabel('y')
     axs[1,0].set_xlabel('Time')
     if zoom:
-        xlim = (split-200, split+800)
+        xlim = (split-100, split+100)
         for ax in axs.flat:
             ax.set(xlim=xlim)
     plt.tight_layout()
@@ -209,18 +209,19 @@ if __name__ == '__main__':
     # params["figname"] = "artificial_noise_nonlinear"
     # main(**params)
     ### experiment 5
-    # params["data"] = data.lorenz
-    # params["data_kwargs"] = {"split_ratio": 0.6}
-    # params["figname"] = "lorenz"
-    # params["num_freqs_fourier"] = 24
-    # params["num_freqs_koopman"] = 24
-    # params["n_neurons"] = 512
-    # params["n_layers"] = 3
-    # params["fit_kwargs"]["interval"] = 25
-    # params["fit_kwargs"]["iterations"] = 1000
-    # params["fit_kwargs"]["cutoff"] = 500
-    # params["zoom"] = False
-    # main(**params)
+    params["data"] = data.lorenz
+    params["data_kwargs"] = {"split_ratio": 0.6}
+    params["figname"] = "lorenz"
+    params["num_freqs_fourier"] = 24
+    params["num_freqs_koopman"] = 24
+    params["n_neurons"] = 512
+    params["n_layers"] = 3
+    params["fit_kwargs"]["interval"] = 25
+    params["fit_kwargs"]["iterations"] = 1000
+    params["fit_kwargs"]["cutoff"] = 500
+    params["zoom"] = False
+    params["normalize"] = True
+    main(**params)
     ### experiment 6
     # params["data"] = data.energy_consumption
     # params["data_kwargs"] = {"split_ratio": 0.6}
