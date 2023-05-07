@@ -67,7 +67,7 @@ class fourier:
 
 
 
-    def fft(self, xt):
+    def fft(self, xt,freqs=None):
         '''
         Given temporal data xt, fft performs the initial guess of the 
         frequencies contained in the data using the FFT.
@@ -86,8 +86,14 @@ class fourier:
         
         k = self.num_freqs
         self.freqs = []
-        
-        for i in range(k):
+        if freqs:
+            self.freqs = freqs
+            n_input_freqs = len(freqs)
+            if n_input_freqs < k:
+                self.freqs = self.freqs + [0]*(k-n_input_freqs)
+        else:
+            n_input_freqs = 0
+        for i in range(n_input_freqs,k):
         
             N = len(xt)
             
@@ -182,7 +188,7 @@ class fourier:
         
         
         
-    def fit(self, xt, learning_rate = 1E-5, iterations = 1000, verbose=False):
+    def fit(self, xt, learning_rate = 1E-5, iterations = 1000, verbose=False,freqs=None):
         '''
         
         Parameters
@@ -202,7 +208,7 @@ class fourier:
 
         '''
         
-        self.fft(xt)
+        self.fft(xt,freqs)
         self.sgd(xt, iterations = iterations, 
                     learning_rate = learning_rate/xt.shape[0],
                     verbose = verbose)

@@ -102,7 +102,34 @@ class data:
         x_test = x[split:]
         return x_train,x_test,split
          
-def main(data,data_kwargs,normalize,num_freqs_fourier,num_freqs_koopman,n_neurons,n_layers,fit_kwargs,figname,sample_num,zoom = False):
+
+def plot(x_train,x_test,xhat_fourier,xhat_koopman,split,size):
+    fig,axs = plt.subplots(2,2,figsize = (12,6),sharex='col', sharey='row')
+    axs[0,0].plot(np.arange(split),x_train,color = 'orange')
+    axs[0,0].plot(np.arange(split,size),x_test,color = 'green')
+    axs[0,0].plot(np.arange(size),xhat_koopman,label = 'fit',linestyle = '--',color = 'black')
+    axs[0,0].legend(loc = 'lower left')
+    axs[0,0].set_title('Koopman')
+    axs[0,1].plot(np.arange(split),x_train,color = 'orange')
+    axs[0,1].plot(np.arange(split,size),x_test,color = 'green')
+    axs[0,1].plot(np.arange(size),xhat_fourier,label = 'fit',linestyle = '--',color = 'black')
+    axs[0,1].legend(loc = 'lower left')
+    axs[0,1].set_title('Fourier')    
+    axs[1,0].plot(np.arange(split),x_train-xhat_koopman[:split],label = 'train',color = 'orange')
+    axs[1,0].plot(np.arange(split,size),x_test-xhat_koopman[split:],label = 'test',color = 'green')
+    axs[1,0].legend(loc = 'upper left')
+    axs[1,0].set_title('Koopman Residuals')
+    axs[1,1].plot(np.arange(split),x_train-xhat_fourier[:split],label = 'train',color = 'orange')
+    axs[1,1].plot(np.arange(split,size),x_test-xhat_fourier[split:],label = 'test',color = 'green')
+    axs[1,1].legend(loc = 'upper left')
+    axs[1,1].set_title('Fourier Residuals')
+    axs[1,1].set_xlabel('Time')
+    axs[0,0].set_ylabel('y')
+    axs[1,0].set_ylabel('y')
+    axs[1,0].set_xlabel('Time')
+    return fig,axs
+
+def main(data,data_kwargs,normalize,num_freqs_fourier,num_freqs_koopman,n_neurons,n_layers,fit_kwargs,figname,sample_num,zoom= ()):
     x_train,x_test,split = data(**data_kwargs)
     size = x_train.shape[0] + x_test.shape[0]
     # plt.figure(figsize = (20,5))
@@ -113,6 +140,9 @@ def main(data,data_kwargs,normalize,num_freqs_fourier,num_freqs_koopman,n_neuron
     f = fourier(num_freqs=num_freqs_fourier)
     if normalize:
         scaled = f.scale(x_train)
+        if "omegas" in fit_kwargs.keys():
+            freqs_input = [1/i for i in fit_kwargs["omegas"]]
+            f.fit(scaled, freqs = freqs_input, iterations = 1000,verbose = True)
         f.fit(scaled, iterations = 1000,verbose = True)
         print(1/f.freqs)
         xhat_fourier = f.predict(size)
@@ -132,36 +162,20 @@ def main(data,data_kwargs,normalize,num_freqs_fourier,num_freqs_koopman,n_neuron
         k.fit(x_train, **fit_kwargs)
         xhat_koopman = k.predict(size)
     ### plot
-    fig,axs = plt.subplots(2,2,figsize = (16,8),sharex='col', sharey='row')
-    axs[0,0].plot(np.arange(split),x_train,label = 'train',color = 'orange')
-    axs[0,0].plot(np.arange(split,size),x_test,label = 'test',color = 'green')
-    axs[0,0].plot(np.arange(size),xhat_koopman,label = 'koopman',linestyle = '--',color = 'black')
-    axs[0,0].legend()
-    axs[0,0].set_title('Koopman')
-    axs[0,1].plot(np.arange(split),x_train,label = 'train',color = 'orange')
-    axs[0,1].plot(np.arange(split,size),x_test,label = 'test',color = 'green')
-    axs[0,1].plot(np.arange(size),xhat_fourier,label = 'fourier',linestyle = '--',color = 'black')
-    axs[0,1].legend()
-    axs[0,1].set_title('Fourier')    
-    axs[1,0].plot(np.arange(split),x_train-xhat_koopman[:split],label = 'train',color = 'orange')
-    axs[1,0].plot(np.arange(split,size),x_test-xhat_koopman[split:],label = 'test',color = 'green')
-    axs[1,0].legend()
-    axs[1,0].set_title('Koopman Residuals')
-    axs[1,1].plot(np.arange(split),x_train-xhat_fourier[:split],label = 'train',color = 'orange')
-    axs[1,1].plot(np.arange(split,size),x_test-xhat_fourier[split:],label = 'test',color = 'green')
-    axs[1,1].legend()
-    axs[1,1].set_title('Fourier Residuals')
-    axs[1,1].set_xlabel('Time')
-    axs[0,0].set_ylabel('y')
-    axs[1,0].set_ylabel('y')
-    axs[1,0].set_xlabel('Time')
-    if zoom:
-        xlim = (split-100, split+100)
-        for ax in axs.flat:
-            ax.set(xlim=xlim)
+    #no zoom
+    fig,axs = plot(x_train,x_test,xhat_fourier,xhat_koopman,split,size)
     plt.tight_layout()
     plt.savefig(f"figures/{figname}.png")
     plt.show()
+    #zoom
+    fig,axs = plot(x_train,x_test,xhat_fourier,xhat_koopman,split,size)
+    xlim = (split-zoom[0], split+zoom[1])
+    for ax in axs.flat:
+        ax.set(xlim=xlim)
+    plt.tight_layout()
+    plt.savefig(f"figures/{figname}_zoom.png")
+    plt.show()
+
 
 params_base = {
     "data": data.artificial,
@@ -186,28 +200,28 @@ params_base = {
         },
     "figname": "artificial",
     "sample_num": 12,
-    "zoom": True,
+    "zoom": (100,100),
     }
 
 
 
 if __name__ == '__main__':
     params = params_base.copy()
-    # ### experiment 1
-    # main(**params)
-    # ### experiment 2
-    # params["data_kwargs"]["noise"] = True
-    # params["figname"] = "artificial_noise"
-    # main(**params)
-    # ### experiment 3
-    # params["data_kwargs"]["noise"] = False
-    # params["data_kwargs"]["nonlinear"] = True
-    # params["figname"] = "artificial_nonlinear"
-    # main(**params)
-    # ### experiment 4
-    # params["data_kwargs"]["noise"] = True
-    # params["figname"] = "artificial_noise_nonlinear"
-    # main(**params)
+    ### experiment 1
+    main(**params)
+    ### experiment 2
+    params["data_kwargs"]["noise"] = True
+    params["figname"] = "artificial_noise"
+    main(**params)
+    ### experiment 3
+    params["data_kwargs"]["noise"] = False
+    params["data_kwargs"]["nonlinear"] = True
+    params["figname"] = "artificial_nonlinear"
+    main(**params)
+    ### experiment 4
+    params["data_kwargs"]["noise"] = True
+    params["figname"] = "artificial_noise_nonlinear"
+    main(**params)
     ### experiment 5
     params["data"] = data.lorenz
     params["data_kwargs"] = {"split_ratio": 0.6}
@@ -219,25 +233,27 @@ if __name__ == '__main__':
     params["fit_kwargs"]["interval"] = 25
     params["fit_kwargs"]["iterations"] = 1000
     params["fit_kwargs"]["cutoff"] = 500
-    params["zoom"] = False
+    params["fit_kwargs"]["lr_omega"] = 1e-5
+    params["zoom"] = (1000,1000)
     params["normalize"] = True
+
     main(**params)
     ### experiment 6
-    # params["data"] = data.energy_consumption
-    # params["data_kwargs"] = {"split_ratio": 0.6}
-    # params["figname"] = "energy_consumption"
-    # params["num_freqs_fourier"] = 8
-    # params["num_freqs_koopman"] = 8
-    # params["n_neurons"] = 128
-    # params["n_layers"] = 2
-    # params["fit_kwargs"]["interval"] = 5
-    # params["fit_kwargs"]["iterations"] = 100
-    # params["fit_kwargs"]["cutoff"] = 50
-    # params["fit_kwargs"]["omegas"] = [12,24,48,96,168,672,8760,17520]
-    # params["zoom"] = False
-    # params["sample_num"] = 24
-    # params["normalize"] = True
-    # main(**params)
+    params["data"] = data.energy_consumption
+    params["data_kwargs"] = {"split_ratio": 0.6}
+    params["figname"] = "energy_consumption"
+    params["num_freqs_fourier"] = 24
+    params["num_freqs_koopman"] = 24
+    params["n_neurons"] = 512
+    params["n_layers"] = 2
+    params["fit_kwargs"]["interval"] = 20
+    params["fit_kwargs"]["iterations"] = 250
+    params["fit_kwargs"]["cutoff"] = 150
+    params["fit_kwargs"]["omegas"] = [24,168,8760]
+    params["zoom"] = (300,600)
+    params["sample_num"] = 24
+    params["normalize"] = True
+    main(**params)
 
 
 

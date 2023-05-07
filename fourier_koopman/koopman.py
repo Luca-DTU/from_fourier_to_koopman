@@ -338,11 +338,17 @@ class koopman(nn.Module):
         if omegas:
             self.omegas = torch.tensor(omegas, device = self.device,dtype=torch.get_default_dtype())
             self.omegas = 2*np.pi/self.omegas
-
+            if self.num_freq>len(omegas):
+                self.omegas = torch.cat([self.omegas, torch.rand(self.num_freq-len(omegas), device=self.device)])
+        
         for i in range(iterations):
             if not omegas: # if omegas are not given, we need to compute them
                 if i%interval == 0 and i < cutoff: 
                     for k in range(self.num_freq):
+                        self.fft(xt, k, verbose=verbose)
+            elif self.num_freq>len(omegas):
+                if i%interval == 0 and i < cutoff: 
+                    for k in range(len(omegas),self.num_freq):
                         self.fft(xt, k, verbose=verbose)
                 
             if verbose:
