@@ -209,36 +209,36 @@ params_base = {
 
 if __name__ == '__main__':
     params = params_base.copy()
-    ### experiment 1
-    # main(**params)
-    # ### experiment 2
-    # params["data_kwargs"]["noise"] = True
-    # params["figname"] = "artificial_noise"
-    # main(**params)
-    # ### experiment 3
-    # params["data_kwargs"]["noise"] = False
-    # params["data_kwargs"]["nonlinear"] = True
-    # params["figname"] = "artificial_nonlinear"
-    # main(**params)
-    # ### experiment 4
-    # params["data_kwargs"]["noise"] = True
-    # params["figname"] = "artificial_noise_nonlinear"
-    # main(**params)
-    ### experiment 5
-    # params["data"] = data.lorenz
-    # params["data_kwargs"] = {"split_ratio": 0.6}
-    # params["figname"] = "lorenz"
-    # params["num_freqs_fourier"] = 32
-    # params["num_freqs_koopman"] = 32
-    # params["n_neurons"] = 512
-    # params["n_layers"] = 3
-    # params["fit_kwargs"]["interval"] = 25
-    # params["fit_kwargs"]["iterations"] = 500
-    # params["fit_kwargs"]["cutoff"] = 400
-    # # params["fit_kwargs"]["lr_omega"] = 1e-5
-    # params["zoom"] = (1000,1000)
-    # params["normalize"] = True
-    # main(**params)
+    ## experiment 1
+    main(**params)
+    ### experiment 2
+    params["data_kwargs"]["noise"] = True
+    params["figname"] = "artificial_noise"
+    main(**params)
+    ### experiment 3
+    params["data_kwargs"]["noise"] = False
+    params["data_kwargs"]["nonlinear"] = True
+    params["figname"] = "artificial_nonlinear"
+    main(**params)
+    ### experiment 4
+    params["data_kwargs"]["noise"] = True
+    params["figname"] = "artificial_noise_nonlinear"
+    main(**params)
+    ## experiment 5
+    params["data"] = data.lorenz
+    params["data_kwargs"] = {"split_ratio": 0.6}
+    params["figname"] = "lorenz"
+    params["num_freqs_fourier"] = 32
+    params["num_freqs_koopman"] = 32
+    params["n_neurons"] = 512
+    params["n_layers"] = 3
+    params["fit_kwargs"]["interval"] = 25
+    params["fit_kwargs"]["iterations"] = 500
+    params["fit_kwargs"]["cutoff"] = 400
+    # params["fit_kwargs"]["lr_omega"] = 1e-5
+    params["zoom"] = (1000,1000)
+    params["normalize"] = True
+    main(**params)
     ### experiment 6
     params["data"] = data.energy_consumption
     params["data_kwargs"] = {"split_ratio": 0.6}
